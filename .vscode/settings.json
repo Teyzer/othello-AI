@@ -30,6 +30,10 @@
         "thread": "c",
         "vector": "c",
         "stdbool.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "ios": "c",
+        "bitset": "c",
+        "iterator": "c",
+        "ostream": "c"
     }
 }

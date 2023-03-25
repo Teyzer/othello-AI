@@ -1,3 +1,3 @@
 create : main.c othello.c
-	gcc -o main main.c othello.c -g
+	gcc -o main main.c othello.c matrix.c -g -lm
 	./main

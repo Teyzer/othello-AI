@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include "matrix.h"
 #include "othello.h"
 
 /*
@@ -12,16 +13,12 @@ NOIR: -1
 
 */
 
-int max(int a, int b) {
+float max(float a, float b) {
     return a > b ? a : b;
 }
 
-int min(int a, int b) {
+float min(float a, float b) {
     return a < b ? a : b;
-}
-
-int abs(int a) {
-    return a < 0 ? a : -a;
 }
 
 pos po(int x, int y) {
@@ -213,8 +210,8 @@ pos* possible_moves(int** current_board, int player) {
             if (is_valid) {
 
                 pos r;
-                r.x = i;
-                r.y = j;
+                r.x = j;
+                r.y = i;
                 results[current_index] = r;
                 current_index++;
 
@@ -276,7 +273,6 @@ void place_stone(int** board, pos p, int colour){
         }
     }
     // LEFT
-    printf("%d, %d\n", p.x, p.y);
     for(i = 1; p.y - i >= 0 && board[p.y - i][p.x] == -colour; i++){}
     if (p.y - i >= 0 && board[p.y - i][p.x] == colour){
         for(int j = 1; j < i; j++){
@@ -321,7 +317,7 @@ void place_stone(int** board, pos p, int colour){
 }
 
 void printBoard(int** board){
-    printf("/----------------\\");
+    printf("/-----------------\\");
     printf("\n");
     for(int i = 0; i < 8; i++){
         printf("|");
@@ -330,29 +326,61 @@ void printBoard(int** board){
                 printf(" O");
             } else if ( board[i][j] == -1 ) {
                 printf(" X");
+            } else if (board[i][j] == 0) {
+                printf(" .");
             } else {
-                printf("  ");
+                printf(" L");
             }
         }
-        printf("|\n");
+        printf(" |\n");
     }
-    printf("\\----------------/\n");
+    printf("\\-----------------/\n");
 }
 
 
-int pruning(int** board, int player) {
-    int res;
-    for(int i = 0; i < 8; i++){
-        for(int j = 0; j < 8; j++){
-            if (board[i][j] == player){
-                res += abs(4 - i) + abs(4-j);
-            } else {
-                res -= abs(4 - i) + abs(4-j);
-            }
-        }
-    }
+int pruning(int** board, int player, agent a) {
+
+    int W_size = 64;
+
+    float** tab = (float**)malloc(sizeof(float*)*W_size);
     
-    return res;
+    for(int i = 0; i < W_size; i++){
+        tab[i] = (float*)malloc(sizeof(float));
+        tab[i][0] = board[i / 8][i % 8]; // comment ca mon beuf c une matrice colonisatrice 
+    } // tous les tab[i][j] j != i sont pas définis là /!\ réel /!\ raciste
+    // j'ai encore une fois rien dit, les colonisateurs sont en train de me corrompre
+
+    matrix X = init_matrix(W_size, 1, tab);
+    //matrix X = {.arr = tab, .height = 64, .width = 1};
+
+    matrix temp1 = matrix_mult(a.W1, X);
+    // printf("%d, %d, %d, %d", temp1.height, temp1.width, a.b1.height, a.b1.width);
+    // print_matrix(temp1);
+    // print_matrix(a.b1);
+    // printf("Done first\n");
+    matrix Z1 = matrix_add(temp1, a.b1);
+    matrix_sigmoid_self(Z1);
+    
+    // printf("Done first\n");
+    matrix Z2 = matrix_add(matrix_mult(a.W2, Z1), a.b2); // 
+    matrix_sigmoid_self(Z2);
+
+    // printf("Done first\n");
+    matrix temp3 = matrix_mult(a.W3, Z2); // z2 c'est une colonne on est d'accord?
+    // printf("Done second\n"); // oui c'était pas cette ligne là, c'était juste pour parler
+    // printf("%d, %d\n", a.b3.height, a.b3.width); // mdr comment ça ca c normal le dernier noeud est tout seul il y a un seul bias
+    // printf("%d, %d\n", temp3.height, temp3.width);  // wtf mais ca frero ligne * colonne cest de dim 1x1
+    // printf("%d, %d, %d, %d\n", temp3.height, temp3.width, a.b3.width, a.b3.height);
+    matrix Z3 = matrix_add(temp3, a.b3); // j'ai rien dis no comprendo c pas un bail de pointage en faisant le add et multiply en meme temps
+    matrix_sigmoid_self(Z3);
+    
+    // printf("Done first\n");
+    free(tab);
+
+    // printf("Sait jamais");
+
+    return Z3.arr[0][0];
+    
 }
 
 valuation val_option(int v) {
@@ -368,18 +396,22 @@ valuation val_complet(int v, int x, int y) {
     return r;
 }
 
-valuation alpha_beta(int** board, int alpha, int beta, int recursion_left, int player, int turn) {
+valuation alpha_beta(int** board, float alpha, float beta, int recursion_left, int player, int turn, agent a) {
 
     if (recursion_left == 0) {
-        printBoard(board);
-        valuation v = val_option(pruning(board, player));
-
-        printf("Feuille atteinte calcul de l'heuristique : %d\n", v.v);
-
+        // printBoard(board);
+        valuation v = val_option(pruning(board, player, a));
+        // printf("Feuille atteinte calcul de l'heuristique : %d\n", v.v);
         return v;
     }
     
-    pos* next_moves = possible_moves(board, player);
+    pos* next_moves = possible_moves(board, turn);
+    // if(recursion_left == 1) {printf("FOR BOARD :\n");printBoard(board);printf("\nPositions for player %d : ", turn);print_positions(next_moves);printf("\n");}
+    
+    if (next_moves[0].x == -1) { // Pas de move possible
+        return alpha_beta(board, alpha, beta, recursion_left - 1, player, -turn, a);
+    }
+
     valuation value;
     valuation nvalue;
     
@@ -388,12 +420,12 @@ valuation alpha_beta(int** board, int alpha, int beta, int recursion_left, int p
         
         value.v = INT_MIN;
         for(int i = 0; next_moves[i].x != -1; i++ ){
-            printf("NEXT MOVE: (%d, %d)\n", next_moves[i].x, next_moves[i].y);
+            // printf("NEXT MOVE: (%d, %d)\n", next_moves[i].x, next_moves[i].y);
             
             int** p = copy_board(board);
-            place_stone(p, next_moves[i], player);
+            place_stone(p, next_moves[i], turn);
             
-            nvalue = alpha_beta(p, alpha, beta, recursion_left - 1, player, -turn);
+            nvalue = alpha_beta(p, alpha, beta, recursion_left - 1, player, -turn, a);
 
             free_board(p);
 
@@ -408,7 +440,7 @@ valuation alpha_beta(int** board, int alpha, int beta, int recursion_left, int p
                 break; // Beta cutoff
             }
         }
-        printf("--> DEPTH : %d | Val maximise: %d\n", recursion_left, value.v);
+        // printf("--> DEPTH : %d | Val maximise: %d\n", recursion_left, value.v);
         return value; // TODO: heuristic !!!!!
 
     // On veut perdre
@@ -418,9 +450,9 @@ valuation alpha_beta(int** board, int alpha, int beta, int recursion_left, int p
         for (int i = 0; next_moves[i].x != -1; i++) {
 
             int** p = copy_board(board);
-            place_stone(p, next_moves[i], player);
+            place_stone(p, next_moves[i], turn);
 
-            nvalue = alpha_beta(p, alpha, beta, recursion_left - 1, player, turn);
+            nvalue = alpha_beta(p, alpha, beta, recursion_left - 1, player, -turn, a);
             
             free_board(p);
 
@@ -439,9 +471,152 @@ valuation alpha_beta(int** board, int alpha, int beta, int recursion_left, int p
             }
 
         }
-        printf("--> DEPTH : %d | Val minimise: %d\n", recursion_left, value.v);
+        // printf("--> DEPTH : %d | Val minimise: %d\n", recursion_left, value.v);
         return value;
 
+    }
+
+}
+
+
+/* ----------------- READING DATA ------------------ */
+
+agent create_agent() {
+
+    agent a;
+
+    int W_size = 64;
+
+    a.W1 = null_matrix(W_size, W_size);
+    a.W2 = null_matrix(W_size, W_size);
+    a.W3 = null_matrix(1, W_size);
+    a.b1 = null_matrix(W_size, 1);
+    a.b2 = null_matrix(W_size, 1);
+    a.b3 = null_matrix(1, 1);
+
+    printf("W1: ");
+    for (int i = 0; i < W_size; i++) {
+        for (int j = 0; j < W_size; j++) {
+            scanf("%f", &a.W1.arr[i][j]);
+        }
+    }
+
+    printf("Received W1\n");
+
+    //printf("W1 DONE");
+
+    printf("W2: ");
+    for (int i = 0; i < W_size; i++) {
+        for (int j = 0; j < W_size; j++) {
+            scanf("%f", &a.W2.arr[i][j]);
+        }
+    }
+    printf("Received W2\n");
+
+    printf("W3: ");
+    for (int i = 0; i < 1; i++) {
+        for (int j = 0; j < W_size; j++) {
+            scanf("%f", &a.W3.arr[i][j]);
+        }
+    }
+    printf("Received W3\n");
+
+    printf("b1: ");
+    for (int i = 0; i < W_size; i++) {
+        for (int j = 0; j < 1; j++) {
+            scanf("%f", &a.b1.arr[i][j]);
+        }
+    }
+    printf("Received b1\n");
+
+    printf("b2: ");
+    for (int i = 0; i < W_size; i++) {
+        for (int j = 0; j < 1; j++) {
+            scanf("%f", &a.b2.arr[i][j]);
+        }
+    }
+    printf("Received b2\n");
+
+    printf("b3: ");
+    for (int i = 0; i < 1; i++) {
+        for (int j = 0; j < 1; j++) {
+            scanf("%f", &a.b3.arr[i][j]);
+        }
+    }
+    printf("Received b3\n");
+
+    return a;
+
+}
+
+int winner_of_board(int** board) {
+
+    int p1 = 0, p2 = 0;
+
+    for (int i = 0; i < BOARD_HEIGHT; i++) {
+        for (int j = 0; j < BOARD_WIDTH; j++) {
+
+            if (board[i][j] == 1) {
+                p1++;
+            } else if (board[i][j] == -1) {
+                p2++;
+            } else {
+                continue;
+            }
+
+        }
+    }
+
+    return p1 >= p2;
+
+}
+
+void evaluate_two_agents(agent agent1, agent agent2) {
+
+    int** board = initialize_game();
+    start_game(board);
+
+    int MAX_PROFONDEUR = 5;
+
+    int current_player = -1;
+    int stones_placed = 4;
+
+    for (int i = 0; stones_placed <= BOARD_HEIGHT * BOARD_WIDTH; i++) {
+
+        printf("Move #%d\n", stones_placed);
+        printBoard(board);
+
+        pos* possible = possible_moves(board, current_player);
+        if (possible[0].x == -1) {
+
+            pos* other_poss = possible_moves(board, current_player);
+            if (other_poss[0].x == -1) {
+                break;
+            }
+
+            current_player = -current_player;
+            continue;
+
+        }
+
+        agent current_agent = current_player == -1 ? agent1 : agent2;
+        valuation best_valuation = alpha_beta(board, INT_MIN, INT_MAX, MAX_PROFONDEUR, current_player, current_player, agent1);
+
+        pos next_doable_move = best_valuation.p;
+
+        place_stone(board, next_doable_move, current_player);
+        
+        current_player = -current_player;
+        stones_placed++;
+
+    }   
+
+    bool result = winner_of_board(board);
+
+    if (result) {
+        printf("RESULT:1\n");
+    } else {
+        printf("RESULT:2\n");
     }
 
 }

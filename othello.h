@@ -3,8 +3,10 @@
 
 #define BOARD_HEIGHT 8
 #define BOARD_WIDTH 8
-#define INT_MIN -2147483648
-#define INT_MAX 2147483647
+#define INT_MIN -3.402823466e38
+#define INT_MAX 3.402823466e38
+
+#include "matrix.h"
 
 typedef struct pos {
     int x;
@@ -13,14 +15,24 @@ typedef struct pos {
 
 typedef struct valuation {
     pos p;
-    int v;
+    float v;
 } valuation;
+
+typedef struct agent {
+    matrix W1; // 64 x 64 --> Matrice
+    matrix W2; // 64 x 64 --> Matrice
+    matrix W3; // 1 x 64  --> Ligne
+    matrix b1; // 64 x 1  --> Colonne
+    matrix b2; // 64 x 1  --> Colonne
+    matrix b3; // 1 x 1   --> Colonne
+} agent;
 
 // Utilities
 pos po(int x, int y);
-int max(int a, int b);
-int min(int a, int b);
-int abs(int a);
+float max(float a, float b);
+float min(float a, float b);
+// float abs(float a);
+// int absi(int a);
 
 // Main functions
 int** initialize_game();
@@ -31,7 +43,9 @@ pos* possible_moves(int**, int);
 void print_positions(pos* position);
 void place_stone(int**, pos, int);
 void printBoard(int**);
-valuation alpha_beta(int** board, int alpha, int beta, int recursion_left, int player, int turn);
+valuation alpha_beta(int** board, float alpha, float beta, int recursion_left, int player, int turn, agent a);
 
+agent create_agent();
+void evaluate_two_agents(agent agent1, agent agent2);
 
 #endif
