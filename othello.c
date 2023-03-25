@@ -494,56 +494,56 @@ agent create_agent() {
     a.b2 = null_matrix(W_size, 1);
     a.b3 = null_matrix(1, 1);
 
-    printf("W1: ");
+    // printf("W1: ");
     for (int i = 0; i < W_size; i++) {
         for (int j = 0; j < W_size; j++) {
             scanf("%f", &a.W1.arr[i][j]);
         }
     }
 
-    printf("Received W1\n");
+    // printf("Received W1\n");
 
     //printf("W1 DONE");
 
-    printf("W2: ");
+    // printf("W2: ");
     for (int i = 0; i < W_size; i++) {
         for (int j = 0; j < W_size; j++) {
             scanf("%f", &a.W2.arr[i][j]);
         }
     }
-    printf("Received W2\n");
+    // printf("Received W2\n");
 
-    printf("W3: ");
+    // printf("W3: ");
     for (int i = 0; i < 1; i++) {
         for (int j = 0; j < W_size; j++) {
             scanf("%f", &a.W3.arr[i][j]);
         }
     }
-    printf("Received W3\n");
+    // printf("Received W3\n");
 
-    printf("b1: ");
+    // printf("b1: ");
     for (int i = 0; i < W_size; i++) {
         for (int j = 0; j < 1; j++) {
             scanf("%f", &a.b1.arr[i][j]);
         }
     }
-    printf("Received b1\n");
+    // printf("Received b1\n");
 
-    printf("b2: ");
+    // printf("b2: ");
     for (int i = 0; i < W_size; i++) {
         for (int j = 0; j < 1; j++) {
             scanf("%f", &a.b2.arr[i][j]);
         }
     }
-    printf("Received b2\n");
+    // printf("Received b2\n");
 
-    printf("b3: ");
+    // printf("b3: ");
     for (int i = 0; i < 1; i++) {
         for (int j = 0; j < 1; j++) {
             scanf("%f", &a.b3.arr[i][j]);
         }
     }
-    printf("Received b3\n");
+    // printf("Received b3\n");
 
     return a;
 
@@ -576,7 +576,7 @@ void evaluate_two_agents(agent agent1, agent agent2) {
     int** board = initialize_game();
     start_game(board);
 
-    int MAX_PROFONDEUR = 5;
+    int MAX_PROFONDEUR = 7;
 
     int current_player = -1;
     int stones_placed = 4;

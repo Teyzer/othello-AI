@@ -120,9 +120,12 @@ def evaluate_against(model1: Agent, model2: Agent):
                  "\n".join(map(str, model2.b3.flatten()))
 
     result = subprocess.run(["./main"], capture_output=True, input=(first_text_input + second_text_input).encode("UTF-8"))
-    txt = result.stdout
+    txt = result.stdout.decode("utf-8")
 
-    print(txt)
+    i = txt.index("RESULT:")
+    result = txt[i + len("RESULT:")]
+
+    return int(result) == 1
     
 
 
@@ -140,6 +143,7 @@ def evalue_fitness(nb_rounds: int, agents: List[Agent]):
         print("Inner round #{0}".format(r))
         for i in range(nb_agents):
             for j in range(i + 1, nb_agents):
+                print(i, j)
                 t = ThreadWithReturnValue(target=evaluate_against, args=(agents[i], agents[j]))
                 t.start()
                 threads.append([i, j, t])
@@ -222,7 +226,7 @@ def model(nb_gen: int, nb_agents: int) :
 
 if __name__ == "__main__":
 
-    A = model(1, 32)
+    A = model(10, 12)
 
     with open("sample.txt", "w") as f:
         t = "\n".join(map(str, A.W1.flatten()))
