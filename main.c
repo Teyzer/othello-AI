@@ -17,16 +17,24 @@ int main() {
 
     // print_matrix(h);
 
-    FILE* f = fopen("sample.txt", "r");
+    //play_game_2_players();
 
-    agent* generation = create_gen_from_file(f);
+    
+
+    // FILE* f = fopen("sample.txt", "r");
+
+    // // agent* generation = create_gen_from_file(f);
+    // agent a1 = create_agent();
     // agent a2 = create_agent();
+
+    //Sagent* a = create_gen_from_folder();
 
     
     // printf("WTF PRINT PLEASE\n");
 
 
-    // evaluate_two_agents(a1, a2);
+    //evaluate_two_agents(a[0], a[1]);
+    do_tournament();
 
     // matrix m = identity_matrix(10);
     // print_matrix(m);

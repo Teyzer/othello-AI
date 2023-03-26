@@ -81,7 +81,7 @@ pos* possible_moves(int** current_board, int player) {
 
     int max_possible_moves = 30; // j'ai supposé qu'on aurait pas plus de 16 moves possibles
     pos* results = (pos*)malloc(sizeof(pos) * max_possible_moves);
-    bool* allowed = (bool*)malloc(sizeof(bool) * BOARD_HEIGHT * BOARD_WIDTH);
+    //bool* allowed = (bool*)malloc(sizeof(bool) * BOARD_HEIGHT * BOARD_WIDTH);
 
     int current_index = 0, k;
     bool is_valid, found_other;
@@ -103,6 +103,7 @@ pos* possible_moves(int** current_board, int player) {
                     break;
                 } else if (current_board[i - k][j] == player) {
                     is_valid = is_valid || found_other;
+                    break;
                 } else {
                     found_other = true;
                 }
@@ -117,6 +118,7 @@ pos* possible_moves(int** current_board, int player) {
                     break;
                 } else if (current_board[i + k][j] == player) {
                     is_valid = is_valid || found_other;
+                    break;
                 } else {
                     found_other = true;
                 }
@@ -131,6 +133,7 @@ pos* possible_moves(int** current_board, int player) {
                     break;
                 } else if (current_board[i][j - k] == player) {
                     is_valid = is_valid || found_other;
+                    break;
                 } else {
                     found_other = true;
                 }
@@ -145,6 +148,7 @@ pos* possible_moves(int** current_board, int player) {
                     break;
                 } else if (current_board[i][j + k] == player) {
                     is_valid = is_valid || found_other;
+                    break;
                 } else {
                     found_other = true;
                 }
@@ -159,6 +163,7 @@ pos* possible_moves(int** current_board, int player) {
                     break;
                 } else if (current_board[i - k][j - k] == player) {
                     is_valid = is_valid || found_other;
+                    break;
                 } else {
                     found_other = true;
                 }
@@ -173,6 +178,7 @@ pos* possible_moves(int** current_board, int player) {
                     break;
                 } else if (current_board[i - k][j + k] == player) {
                     is_valid = is_valid || found_other;
+                    break;
                 } else {
                     found_other = true;
                 }
@@ -187,6 +193,7 @@ pos* possible_moves(int** current_board, int player) {
                     break;
                 } else if (current_board[i + k][j - k] == player) {
                     is_valid = is_valid || found_other;
+                    break;
                 } else {
                     found_other = true;
                 }
@@ -201,6 +208,7 @@ pos* possible_moves(int** current_board, int player) {
                     break;
                 } else if (current_board[i + k][j + k] == player) {
                     is_valid = is_valid || found_other;
+                    break;
                 } else {
                     found_other = true;
                 }
@@ -214,6 +222,7 @@ pos* possible_moves(int** current_board, int player) {
                 r.y = i;
                 results[current_index] = r;
                 current_index++;
+                is_valid = false;
 
             }
 
@@ -349,8 +358,11 @@ int pruning(int** board, int player, agent a) {
         tab[i][0] = player*board[i / 8][i % 8]; // multiply by player so that its the 1 stones that need to be maximised
     } 
 
+    
+
     matrix X = init_matrix(W_size, 1, tab);
     //matrix X = {.arr = tab, .height = 64, .width = 1};
+    // print_matrix(X);
 
     matrix temp1 = matrix_mult(a.W1, X);
     // printf("%d, %d, %d, %d", temp1.height, temp1.width, a.b1.height, a.b1.width);
@@ -377,7 +389,8 @@ int pruning(int** board, int player, agent a) {
     free(tab);
 
     // printf("Sait jamais");
-
+    // printBoard(board);
+    // printf("Heurisitic value (%f)\n", Z3.arr[0][0]);
     return Z3.arr[0][0];
     
 }
@@ -624,6 +637,70 @@ agent* create_gen_from_file(FILE* f){
     return n;
 }
 
+agent* create_gen_from_folder() {
+
+    int agent_count = 32;
+
+    agent* agent_array = (agent*)malloc(sizeof(agent) * agent_count);
+    char file_location[40];
+    FILE* f;
+
+    for (int i = 0; i < agent_count; i++) {
+
+        sprintf(file_location, "temp_agents/agent%d.txt", i);
+        f = fopen(file_location, "r");
+
+        agent_array[i] = create_agent_from_file(f);
+
+        fclose(f);
+    
+    }
+
+    return agent_array;
+
+}
+
+void do_tournament() {
+
+    int agent_count = 32;
+
+    agent* agent_array = create_gen_from_folder();
+
+    int* values_arr = (int*)malloc(sizeof(int) * agent_count);
+    for (int i = 0; i < agent_count; i++) {
+        values_arr[i] = 0;
+    }
+
+    int temp_result;
+
+    for (int i = 0; i < agent_count; i++) {
+        for (int j = 0; j < agent_count; j++) {
+            
+            if (i == j) {
+                continue;
+            }
+
+            temp_result = evaluate_two_agents(agent_array[i], agent_array[j]);
+
+            if (temp_result == 1) {
+                values_arr[i]++;
+            } else {
+                values_arr[j]++;
+            }
+
+        }
+    }
+
+    printf("RESULT:");
+    for (int i = 0; i < agent_count; i++) {
+        if (i != 0) {
+            printf(";");
+        }
+        printf("%d", values_arr[i]);
+    }
+
+}
+
 int winner_of_board(int** board) {
 
     int p1 = 0, p2 = 0;
@@ -646,25 +723,25 @@ int winner_of_board(int** board) {
 
 }
 
-void evaluate_two_agents(agent agent1, agent agent2) {
+int evaluate_two_agents(agent agent1, agent agent2) {
 
     int** board = initialize_game();
     start_game(board);
 
-    int MAX_PROFONDEUR = 5;
+    int MAX_PROFONDEUR = 1;
 
     int current_player = -1;
     int stones_placed = 4;
 
     for (int i = 0; stones_placed <= BOARD_HEIGHT * BOARD_WIDTH; i++) {
 
-        printf("Move #%d\n", stones_placed);
-        printBoard(board);
+        // printf("Move #%d\n", stones_placed);
+        // printBoard(board);
 
         pos* possible = possible_moves(board, current_player);
         if (possible[0].x == -1) {
 
-            pos* other_poss = possible_moves(board, current_player);
+            pos* other_poss = possible_moves(board, -current_player);
             if (other_poss[0].x == -1) {
                 break;
             }
@@ -675,7 +752,7 @@ void evaluate_two_agents(agent agent1, agent agent2) {
         }
 
         agent current_agent = current_player == -1 ? agent1 : agent2;
-        valuation best_valuation = alpha_beta(board, INT_MIN, INT_MAX, MAX_PROFONDEUR, current_player, current_player, agent1);
+        valuation best_valuation = alpha_beta(board, INT_MIN, INT_MAX, MAX_PROFONDEUR, current_player, current_player, current_agent);
 
         pos next_doable_move = best_valuation.p;
 
@@ -684,14 +761,58 @@ void evaluate_two_agents(agent agent1, agent agent2) {
         current_player = -current_player;
         stones_placed++;
 
-    }   
-
+    }
+    //printf("Final game state : \n");   
+    //printBoard(board);
+    //printf("Stones placed: %d\n",stones_placed);
     bool result = winner_of_board(board);
 
     if (result) {
-        printf("RESULT:1\n");
+        //printf("RESULT:1\n");
     } else {
-        printf("RESULT:2\n");
+        //printf("RESULT:2\n");
+    }
+
+    return result;
+
+}
+
+void play_game_2_players() {
+
+    int** board = initialize_game();
+    start_game(board);
+
+    int stones_placed = 4;
+    int current_player = -1;
+
+    int move_x;
+    int move_y;
+
+    for (int i = 0; stones_placed <= BOARD_HEIGHT * BOARD_WIDTH; i++) {
+
+        printf("---------- TURN %d ------------\n", i);
+
+        pos* possible = possible_moves(board, current_player);
+        if (possible[0].x == -1) {
+            printf("No possible move\n");
+            current_player = -current_player;
+            continue;
+        }
+
+        printBoard(board);
+        print_positions(possible);
+
+        printf("Move of player %d:\n", current_player);
+        printf("X: ");
+        scanf("%d", &move_x);
+        printf("Y: ");
+        scanf("%d", &move_y);
+
+        place_stone(board, po(move_x, move_y), current_player);
+
+        current_player = -current_player;
+        stones_placed++;
+
     }
 
 }

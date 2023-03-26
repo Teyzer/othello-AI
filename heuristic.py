@@ -3,6 +3,8 @@ from typing import *
 import subprocess
 from threading import Thread
 import concurrent.futures
+import itertools
+import random
 
 class ThreadWithReturnValue(Thread):
     
@@ -85,8 +87,18 @@ class Agent :
 # Utility functions
 def sigmoid(X) :
     return 1/(1 + np.exp(-X))
+
+def write(A : Agent, index : int) :
+    with open("temp_agents/agent" + str(index) + ".txt", "w") as f :
+        f.write("\n".join(map(str, A.W1.flatten())) + "\n" +\
+                 "\n".join(map(str, A.W2.flatten())) + "\n" +\
+                 "\n".join(map(str, A.W3.flatten())) + "\n" +\
+                 "\n".join(map(str, A.b1.flatten())) + "\n" +\
+                 "\n".join(map(str, A.b2.flatten())) + "\n" +\
+                 "\n".join(map(str, A.b3.flatten())))
 #----------------------------------------#
 
+#----------------------------------------------------------
 def crossover(A1 : Agent, A2 : Agent) :
 
     p1 = A1.parameters()
@@ -101,7 +113,7 @@ def crossover(A1 : Agent, A2 : Agent) :
     return [nA1,nA2]
 
 
-
+#----------------------------------------------------------
 def evaluate_against(model1: Agent, model2: Agent):
      
     first_text_input = "\n".join(map(str, model1.W1.flatten())) + "\n" +\
@@ -120,14 +132,14 @@ def evaluate_against(model1: Agent, model2: Agent):
 
     result = subprocess.run(["./main"], capture_output=True, input=(first_text_input + second_text_input).encode("UTF-8"))
     txt = result.stdout.decode("utf-8")
-
-    i = txt.index("RESULT:")
+    # print("STD-OUT : \n", txt) # PK ca imprime pas ca ? <-- necesitamos vever el stdout
+    i = txt.index("RESULT:") # psque je voulais voir les barres juste le temps de voir les [32, 32, 32, 32, ..., ..., ..., ...]
     result = txt[i + len("RESULT:")]
 
     return int(result) == 1
     
-
-def evalue_fitness(nb_rounds: int, agents: List[Agent]):
+#----------------------------------------------------------
+def evalue_fitness_multi_threading(nb_rounds: int, agents: List[Agent]):
 
     
     nb_agents = len(agents)
@@ -185,6 +197,21 @@ def evalue_fitness(nb_rounds: int, agents: List[Agent]):
 
     return scores
 
+#----------------------------------------------------------
+def evalue_fitness(nb_rounds: int, gen: List[Agent]):
+
+    for i in range(len(gen)) :
+        write(gen[i], i)
+
+    result = subprocess.run(["./main"], capture_output=True) # maybe input nb_rounds
+    txt = result.stdout.decode("utf-8")
+
+    i = txt.index("RESULT:")
+    result = list(map(int, txt[i + len("RESULT:"):].split(";")))
+
+    return result
+    
+#----------------------------------------------------------
 def evolve_generation(gen : list[Agent], scores : List[int]) :
 
     gen_couple = [(gen[i], scores[i]) for i in range(len(scores))]
@@ -197,7 +224,7 @@ def evolve_generation(gen : list[Agent], scores : List[int]) :
                  "\n".join(map(str, gen_couple[0][0].b1.flatten())) + "\n" +\
                  "\n".join(map(str, gen_couple[0][0].b2.flatten())) + "\n" +\
                  "\n".join(map(str, gen_couple[0][0].b3.flatten())) + "\n")
-
+    f.close()
     new_gen = []
 
     # 32 AGENTS : 4 ( top agents ) + 4 ( random ) + 12 ( crossover ) + 12 ( mutation )
@@ -232,12 +259,15 @@ def evolve_generation(gen : list[Agent], scores : List[int]) :
 
     return new_gen
 
+#----------------------------------------------------------
 def first_generation(nb_agents) :
     n = [Agent() for _ in range(nb_agents)]
     for a in n :
         a.rand_initialise()
+        a.rand_mutations(random.randint(-3,3))
     return n
 
+#----------------------------------------------------------
 def get_best(gen: List[Agent]) -> Agent:
 
     scores = evalue_fitness(1, gen)
@@ -247,7 +277,7 @@ def get_best(gen: List[Agent]) -> Agent:
     print("Best score : ", gen_couple[0][1])
     return gen_couple[0][0]
 
-
+#----------------------------------------------------------
 def model(nb_gen: int, nb_agents: int) :
     generation  = first_generation(nb_agents)
     for r in range(nb_gen) :
@@ -258,19 +288,8 @@ def model(nb_gen: int, nb_agents: int) :
     return get_best(generation)
 
 
-def append(A : Agent) :
-    with open("sample.txt", "a") as f:
-        t = "\n".join(map(str, A.W1.flatten()))
-        t += "\n" + "\n".join(map(str, A.W2.flatten()))
-        t += "\n" + "\n".join(map(str, A.W3.flatten()))
-        t += "\n" + "\n".join(map(str, A.b1.flatten()))
-        t += "\n" + "\n".join(map(str, A.b2.flatten()))
-        t += "\n" + "\n".join(map(str, A.b3.flatten())) + "\n"
-        f.write(t)
-        f.close()
 
-def clear_text() :
-    open("sample.txt", "w").close()
+
 #-----------------------------------------------#
 
 
@@ -279,12 +298,7 @@ if __name__ == "__main__":
 
     subprocess.run("gcc -o main main.c othello.c matrix.c -g -lm".split(), capture_output=True) # pour compiler une fois avant
 
-    clear_text()
-    # n = first_generation(32)
-    # for agent in n :
-    #     append(agent)
-
-    # A = model(3, 32)
+    A = model(10, 32)
 
 
 

@@ -47,7 +47,11 @@ valuation alpha_beta(int** board, float alpha, float beta, int recursion_left, i
 
 agent create_agent();
 agent create_agent_from_file(FILE* file);
-void evaluate_two_agents(agent agent1, agent agent2);
+int evaluate_two_agents(agent agent1, agent agent2);
 agent* create_gen_from_file(FILE* f);
+agent* create_gen_from_folder();
+void do_tournament();
+
+void play_game_2_players();
 
 #endif
