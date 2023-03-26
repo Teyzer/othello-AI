@@ -46,6 +46,8 @@ void printBoard(int**);
 valuation alpha_beta(int** board, float alpha, float beta, int recursion_left, int player, int turn, agent a);
 
 agent create_agent();
+agent create_agent_from_file(FILE* file);
 void evaluate_two_agents(agent agent1, agent agent2);
+agent* create_gen_from_file(FILE* f);
 
 #endif

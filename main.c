@@ -17,14 +17,16 @@ int main() {
 
     // print_matrix(h);
 
-    agent a1 = create_agent();
-    agent a2 = create_agent();
+    FILE* f = fopen("sample.txt", "r");
+
+    agent* generation = create_gen_from_file(f);
+    // agent a2 = create_agent();
 
     
     // printf("WTF PRINT PLEASE\n");
 
 
-    evaluate_two_agents(a1, a2);
+    // evaluate_two_agents(a1, a2);
 
     // matrix m = identity_matrix(10);
     // print_matrix(m);

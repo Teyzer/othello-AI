@@ -1,8 +1,8 @@
 import numpy as np
 from typing import *
-import itertools
 import subprocess
 from threading import Thread
+import concurrent.futures
 
 class ThreadWithReturnValue(Thread):
     
@@ -102,7 +102,6 @@ def crossover(A1 : Agent, A2 : Agent) :
 
 
 
-
 def evaluate_against(model1: Agent, model2: Agent):
      
     first_text_input = "\n".join(map(str, model1.W1.flatten())) + "\n" +\
@@ -128,35 +127,61 @@ def evaluate_against(model1: Agent, model2: Agent):
     return int(result) == 1
     
 
-
 def evalue_fitness(nb_rounds: int, agents: List[Agent]):
 
-    subprocess.run("gcc -o main main.c othello.c matrix.c -g -lm".split(), capture_output=True) # pour compiler une fois avant
+    
     nb_agents = len(agents)
 
     scores = [0 for _ in agents]
     
-    threads = []
     res = []
 
+    current_done = 0
+    bar_length = 20
+
     for r in range(nb_rounds):
-        print("Inner round #{0}".format(r))
+        print("Inner round #{0}".format(r+1))
+
         for i in range(nb_agents):
-            for j in range(i + 1, nb_agents):
-                print(i, j)
-                t = ThreadWithReturnValue(target=evaluate_against, args=(agents[i], agents[j]))
-                t.start()
-                threads.append([i, j, t])
-        
-        for thread in threads:
-            res.append([thread[0], thread[1], thread[2].join()])
+            
+            current_done = 0
 
-        for element in res:
-            if element[2]:
-                scores[element[0]] += 1
-            else:
-                scores[element[1]] += 1
+            print("\r[{0}] {1}/{2}".format(" "*bar_length, i + 1, nb_agents), end="")
 
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = []
+                for j in range(nb_agents):
+                    futures.append(executor.submit(evaluate_against, model1=agents[i], model2=agents[j]))
+                for future in concurrent.futures.as_completed(futures):
+                    res = future.result()
+                    #print(f"{i}: Fight #")
+                    current_done += 1
+                    bar_progress = int((100 * current_done / nb_agents) * bar_length / 100)
+                    print("\r[{0}{1}] {2}/{3}".format("="*bar_progress, " "*(bar_length-bar_progress), i + 1, nb_agents), end="")
+                    
+
+                    if res:
+                        scores[i] += 1
+                    # print('\r>> [] %d%%' % i),
+                    # sys.stdout.flush()
+
+                    # else:
+                    #     scores[j] += 1
+
+            print()
+            # for j in range(i + 1, nb_agents):
+
+
+                
+            #     res = evaluate_against(agents[i], agents[j])
+            #     # print(i, j)
+            #     # t = ThreadWithReturnValue(target=evaluate_against, args=(agents[i], agents[j]))
+            #     # t.start()
+            #     # threads.append([i, j, t])
+                # if res:
+                #     scores[i] += 1
+                # else:
+                #     scores[j] += 1
 
     return scores
 
@@ -164,6 +189,14 @@ def evolve_generation(gen : list[Agent], scores : List[int]) :
 
     gen_couple = [(gen[i], scores[i]) for i in range(len(scores))]
     gen_couple.sort(key=lambda x : x[1], reverse=True)
+
+    f = open("best_agent.txt", "w")
+    f.write("\n".join(map(str, gen_couple[0][0].W1.flatten())) + "\n" +\
+                 "\n".join(map(str, gen_couple[0][0].W2.flatten())) + "\n" +\
+                 "\n".join(map(str, gen_couple[0][0].W3.flatten())) + "\n" +\
+                 "\n".join(map(str, gen_couple[0][0].b1.flatten())) + "\n" +\
+                 "\n".join(map(str, gen_couple[0][0].b2.flatten())) + "\n" +\
+                 "\n".join(map(str, gen_couple[0][0].b3.flatten())) + "\n")
 
     new_gen = []
 
@@ -184,14 +217,18 @@ def evolve_generation(gen : list[Agent], scores : List[int]) :
     # 12 crossover
     for sub in itertools.combinations([0,1,2,3], 2):
         new_gen.extend(crossover(gen_couple[sub[0]][0], gen_couple[sub[1]][0]))
+        new_gen[-1].rand_mutations(0.01)
+        new_gen[-2].rand_mutations(0.01)
 
     # 12 mutation
     for j in range(4) :
         new_gen.append(gen_couple[j][0])
         new_gen.append(gen_couple[j][0])
         new_gen.append(gen_couple[j][0])
-        for i in range(1,4) :
-            new_gen[-i].rand_initialise()
+        
+        new_gen[-1].rand_mutations(0.5)
+        new_gen[-2].rand_mutations(0.1)
+        new_gen[-3].rand_mutations(0.05)
 
     return new_gen
 
@@ -221,19 +258,34 @@ def model(nb_gen: int, nb_agents: int) :
     return get_best(generation)
 
 
-
-#-----------------------------------------------#
-
-if __name__ == "__main__":
-
-    A = model(10, 12)
-
-    with open("sample.txt", "w") as f:
+def append(A : Agent) :
+    with open("sample.txt", "a") as f:
         t = "\n".join(map(str, A.W1.flatten()))
         t += "\n" + "\n".join(map(str, A.W2.flatten()))
         t += "\n" + "\n".join(map(str, A.W3.flatten()))
         t += "\n" + "\n".join(map(str, A.b1.flatten()))
         t += "\n" + "\n".join(map(str, A.b2.flatten()))
-        t += "\n" + "\n".join(map(str, A.b3.flatten()))
+        t += "\n" + "\n".join(map(str, A.b3.flatten())) + "\n"
         f.write(t)
+        f.close()
+
+def clear_text() :
+    open("sample.txt", "w").close()
+#-----------------------------------------------#
+
+
+
+if __name__ == "__main__":
+
+    subprocess.run("gcc -o main main.c othello.c matrix.c -g -lm".split(), capture_output=True) # pour compiler une fois avant
+
+    clear_text()
+    # n = first_generation(32)
+    # for agent in n :
+    #     append(agent)
+
+    # A = model(3, 32)
+
+
+
 

@@ -346,9 +346,8 @@ int pruning(int** board, int player, agent a) {
     
     for(int i = 0; i < W_size; i++){
         tab[i] = (float*)malloc(sizeof(float));
-        tab[i][0] = board[i / 8][i % 8]; // comment ca mon beuf c une matrice colonisatrice 
-    } // tous les tab[i][j] j != i sont pas définis là /!\ réel /!\ raciste
-    // j'ai encore une fois rien dit, les colonisateurs sont en train de me corrompre
+        tab[i][0] = player*board[i / 8][i % 8]; // multiply by player so that its the 1 stones that need to be maximised
+    } 
 
     matrix X = init_matrix(W_size, 1, tab);
     //matrix X = {.arr = tab, .height = 64, .width = 1};
@@ -549,6 +548,82 @@ agent create_agent() {
 
 }
 
+agent create_agent_from_file(FILE* f) {
+
+    agent a;
+
+    int W_size = 64;
+
+    a.W1 = null_matrix(W_size, W_size);
+    a.W2 = null_matrix(W_size, W_size);
+    a.W3 = null_matrix(1, W_size);
+    a.b1 = null_matrix(W_size, 1);
+    a.b2 = null_matrix(W_size, 1);
+    a.b3 = null_matrix(1, 1);
+
+    // printf("W1: ");
+    for (int i = 0; i < W_size; i++) {
+        for (int j = 0; j < W_size; j++) {
+            fscanf(f,"%f", &a.W1.arr[i][j]);
+        }
+    }
+
+    // printf("Received W1\n");
+
+    //printf("W1 DONE");
+
+    // printf("W2: ");
+    for (int i = 0; i < W_size; i++) {
+        for (int j = 0; j < W_size; j++) {
+            fscanf(f,"%f", &a.W2.arr[i][j]);
+        }
+    }
+    // printf("Received W2\n");
+
+    // printf("W3: ");
+    for (int i = 0; i < 1; i++) {
+        for (int j = 0; j < W_size; j++) {
+            fscanf(f,"%f", &a.W3.arr[i][j]);
+        }
+    }
+    // printf("Received W3\n");
+
+    // printf("b1: ");
+    for (int i = 0; i < W_size; i++) {
+        for (int j = 0; j < 1; j++) {
+            fscanf(f,"%f", &a.b1.arr[i][j]);
+        }
+    }
+    // printf("Received b1\n");
+
+    // printf("b2: ");
+    for (int i = 0; i < W_size; i++) {
+        for (int j = 0; j < 1; j++) {
+            fscanf(f,"%f", &a.b2.arr[i][j]);
+        }
+    }
+    // printf("Received b2\n");
+
+    // printf("b3: ");
+    for (int i = 0; i < 1; i++) {
+        for (int j = 0; j < 1; j++) {
+            fscanf(f,"%f", &a.b3.arr[i][j]);
+        }
+    }
+    // printf("Received b3\n");
+
+    return a;
+
+}
+
+agent* create_gen_from_file(FILE* f){
+    agent* n = (agent*)malloc(sizeof(agent)*32);
+    for(int i =0; i < 32; i++){
+        n[i] = create_agent_from_file(f);
+    }
+    return n;
+}
+
 int winner_of_board(int** board) {
 
     int p1 = 0, p2 = 0;
@@ -576,7 +651,7 @@ void evaluate_two_agents(agent agent1, agent agent2) {
     int** board = initialize_game();
     start_game(board);
 
-    int MAX_PROFONDEUR = 7;
+    int MAX_PROFONDEUR = 5;
 
     int current_player = -1;
     int stones_placed = 4;
