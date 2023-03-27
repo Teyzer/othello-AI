@@ -347,7 +347,7 @@ void printBoard(int** board){
 }
 
 
-int pruning(int** board, int player, agent a) {
+float pruning_deep(int** board, int player, agent a) {
 
     int W_size = 64;
 
@@ -395,13 +395,17 @@ int pruning(int** board, int player, agent a) {
     
 }
 
-valuation val_option(int v) {
+int pruning() {
+    
+}
+
+valuation val_option(float v) {
     valuation r;
     r.v = v;
     return r;
 }
 
-valuation val_complet(int v, int x, int y) {
+valuation val_complet(float v, int x, int y) {
     valuation r;
     r.v = v;
     r.p = po(x, y);
@@ -412,7 +416,7 @@ valuation alpha_beta(int** board, float alpha, float beta, int recursion_left, i
 
     if (recursion_left == 0) {
         // printBoard(board);
-        valuation v = val_option(pruning(board, player, a));
+        valuation v = val_option(pruning_deep(board, player, a));
         // printf("Feuille atteinte calcul de l'heuristique : %d\n", v.v);
         return v;
     }
@@ -430,7 +434,7 @@ valuation alpha_beta(int** board, float alpha, float beta, int recursion_left, i
     // On veut gagner
     if(player == turn){
         
-        value.v = INT_MIN;
+        value.v = FLOAT_MINIMUM;
         for(int i = 0; next_moves[i].x != -1; i++ ){
             // printf("NEXT MOVE: (%d, %d)\n", next_moves[i].x, next_moves[i].y);
             
@@ -458,7 +462,7 @@ valuation alpha_beta(int** board, float alpha, float beta, int recursion_left, i
     // On veut perdre
     } else {
 
-        value.v = INT_MAX;
+        value.v = FLOAT_MAXIMUM;
         for (int i = 0; next_moves[i].x != -1; i++) {
 
             int** p = copy_board(board);
@@ -752,7 +756,7 @@ int evaluate_two_agents(agent agent1, agent agent2) {
         }
 
         agent current_agent = current_player == -1 ? agent1 : agent2;
-        valuation best_valuation = alpha_beta(board, INT_MIN, INT_MAX, MAX_PROFONDEUR, current_player, current_player, current_agent);
+        valuation best_valuation = alpha_beta(board, FLOAT_MINIMUM, FLOAT_MAXIMUM, MAX_PROFONDEUR, current_player, current_player, current_agent);
 
         pos next_doable_move = best_valuation.p;
 
@@ -825,7 +829,9 @@ void play_against_ai() {
     int stones_placed = 4;
     int current_player = -1;
 
-    int MAX_PROFONDEUR = 7;
+    int ai_player = -1;
+
+    int MAX_PROFONDEUR = 9;
 
     int move_x;
     int move_y;
@@ -841,13 +847,19 @@ void play_against_ai() {
         if (possible[0].x == -1) {
             printf("No possible move\n");
             current_player = -current_player;
+
+            pos* other_poss = possible_moves(board, -current_player);
+            if (other_poss[0].x == -1) {
+                break;
+            }
+
             continue;
         }
 
         printBoard(board);
         print_positions(possible);
 
-        if (current_player == -1) {
+        if (current_player == -ai_player) {
 
             printf("Move of player %d:\n", current_player);
             printf("X: ");
@@ -859,7 +871,7 @@ void play_against_ai() {
 
         } else {
 
-            valuation best_valuation = alpha_beta(board, INT_MIN, INT_MAX, MAX_PROFONDEUR, current_player, current_player, ai);
+            valuation best_valuation = alpha_beta(board, FLOAT_MINIMUM, FLOAT_MAXIMUM, MAX_PROFONDEUR, current_player, current_player, ai);
             pos next_doable_move = best_valuation.p;
             place_stone(board, next_doable_move, current_player);
 

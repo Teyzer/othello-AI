@@ -6,8 +6,8 @@
 
 int main() {
     
-    int** board = initialize_game();
-    start_game(board);
+    // int** board = initialize_game();
+    // start_game(board);
 
     // matrix f = null_matrix(1, 64);
     // matrix g = null_matrix(64, 1);
@@ -34,7 +34,7 @@ int main() {
 
 
     //evaluate_two_agents(a[0], a[1]);
-    play_against_ai();
+    do_tournament();
 
     // matrix m = identity_matrix(10);
     // print_matrix(m);

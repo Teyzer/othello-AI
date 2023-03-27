@@ -292,7 +292,33 @@ def model(nb_gen: int, nb_agents: int) :
 
 #-----------------------------------------------#
 
+def read() :
+    n = []
+    for i in range(32) :
+        with open("temp_agents/agent" + str(i) + ".txt", "r" ) as f :
+            a = Agent()
+            txt = list(map(float,f.read().split("\n")))
 
+            a.initialize(np.reshape(txt[0:64*64],(64,64)), 
+                         np.reshape(txt[64*64:2*64*64], (64,64)), 
+                         np.reshape(txt[2*64*64:2*64*64 + 64], (1,64)), 
+                         np.reshape(txt[2*64*64 + 64:2*64*64 + 2*64],(64,1)), 
+                         np.reshape(txt[2*64*64 + 2*64:2*64*64 + 3*64],(64,1)), 
+                         np.reshape(txt[2*64*64 + 3*64: 2*64*64 + 3*64 + 1],(1,1)))
+            n.append(a)
+    return n
+
+#-----------------------------------------------#
+def model_continue(nb_gen: int, nb_agents: int) :
+    generation = read()
+    for r in range(nb_gen) :
+        print("Playing round : ", r)
+        score = evalue_fitness(1, generation)
+        print("Tableau des scores : ", score)
+        generation = evolve_generation(generation, score)
+    return get_best(generation)
+
+#-----------------------------------------------#
 
 if __name__ == "__main__":
 

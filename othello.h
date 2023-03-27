@@ -3,8 +3,8 @@
 
 #define BOARD_HEIGHT 8
 #define BOARD_WIDTH 8
-#define INT_MIN -3.402823466e38
-#define INT_MAX 3.402823466e38
+#define FLOAT_MINIMUM -3.402823466e38
+#define FLOAT_MAXIMUM 3.402823466e38
 
 #include "matrix.h"
 
