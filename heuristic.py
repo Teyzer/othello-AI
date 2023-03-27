@@ -274,16 +274,16 @@ def get_best(gen: List[Agent]) -> Agent:
     gen_couple = [(gen[i], scores[i]) for i in range(len(scores))]
     gen_couple.sort(key=lambda x : x[1], reverse=True)
 
-    print("Best score : ", gen_couple[0][1])
+    print("Best score:", gen_couple[0][1])
     return gen_couple[0][0]
 
 #----------------------------------------------------------
 def model(nb_gen: int, nb_agents: int) :
     generation  = first_generation(nb_agents)
     for r in range(nb_gen) :
-        print("Playing round : ", r)
+        print("Playing round:", r+1, "/", nb_gen)
         score = evalue_fitness(1, generation)
-        print("Tableau des scores : ", score)
+        print("Tableau des scores:", score)
         generation = evolve_generation(generation, score)
     return get_best(generation)
 
@@ -297,8 +297,7 @@ def model(nb_gen: int, nb_agents: int) :
 if __name__ == "__main__":
 
     subprocess.run("gcc -o main main.c othello.c matrix.c -g -lm".split(), capture_output=True) # pour compiler une fois avant
-
-    A = model(10, 32)
+    A = model(2000, 32)
 
 
 

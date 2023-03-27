@@ -53,5 +53,6 @@ agent* create_gen_from_folder();
 void do_tournament();
 
 void play_game_2_players();
+void play_against_ai();
 
 #endif

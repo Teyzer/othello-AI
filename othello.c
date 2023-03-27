@@ -816,3 +816,58 @@ void play_game_2_players() {
     }
 
 }
+
+void play_against_ai() {
+
+    int** board = initialize_game();
+    start_game(board);
+
+    int stones_placed = 4;
+    int current_player = -1;
+
+    int MAX_PROFONDEUR = 7;
+
+    int move_x;
+    int move_y;
+
+    FILE* f = fopen("selected_agent.txt", "r");
+    agent ai = create_agent_from_file(f);
+
+    for (int i = 0; stones_placed <= BOARD_HEIGHT * BOARD_WIDTH; i++) {
+
+        printf("---------- TURN %d ------------\n", i);
+
+        pos* possible = possible_moves(board, current_player);
+        if (possible[0].x == -1) {
+            printf("No possible move\n");
+            current_player = -current_player;
+            continue;
+        }
+
+        printBoard(board);
+        print_positions(possible);
+
+        if (current_player == -1) {
+
+            printf("Move of player %d:\n", current_player);
+            printf("X: ");
+            scanf("%d", &move_x);
+            printf("Y: ");
+            scanf("%d", &move_y);
+
+            place_stone(board, po(move_x, move_y), current_player);
+
+        } else {
+
+            valuation best_valuation = alpha_beta(board, INT_MIN, INT_MAX, MAX_PROFONDEUR, current_player, current_player, ai);
+            pos next_doable_move = best_valuation.p;
+            place_stone(board, next_doable_move, current_player);
+
+        }
+
+        current_player = -current_player;
+        stones_placed++;
+
+    }
+
+}

@@ -34,7 +34,7 @@ int main() {
 
 
     //evaluate_two_agents(a[0], a[1]);
-    do_tournament();
+    play_against_ai();
 
     // matrix m = identity_matrix(10);
     // print_matrix(m);
