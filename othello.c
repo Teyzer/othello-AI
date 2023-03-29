@@ -13,6 +13,9 @@ NOIR: -1
 
 */
 
+/*---------------------------------------------------------*/
+/*                        UTILITY                          */
+/*---------------------------------------------------------*/
 float max(float a, float b) {
     return a > b ? a : b;
 }
@@ -27,6 +30,67 @@ pos po(int x, int y) {
     r.y = y;
     return r;
 }
+
+valuation val_option(float v) {
+    valuation r;
+    r.v = v;
+    return r;
+}
+
+valuation val_complet(float v, int x, int y) {
+    valuation r;
+    r.v = v;
+    r.p = po(x, y);
+    return r;
+}
+/*---------------------------------------------------------*/
+/*                   PRINT FUNCTIONS                       */
+/*---------------------------------------------------------*/
+void print_positions(pos* position) {
+    
+    int index = 0;
+
+    if (position[index].x == -1) {
+        printf("[]");
+        return;
+    }
+
+    printf("[");
+    printf("(%d, %d)", position[index].x, position[index].y);
+    index++;
+    while (position[index].x != -1) {
+        printf(", (%d, %d)", position[index].x, position[index].y);
+        index++;
+    }
+    printf("]\n");
+
+}
+
+
+void printBoard(int** board){
+    printf("/-----------------\\");
+    printf("\n");
+    for(int i = 0; i < 8; i++){
+        printf("|");
+        for(int j = 0; j < 8; j++){
+            if ( board[i][j] == 1 ){
+                printf(" O");
+            } else if ( board[i][j] == -1 ) {
+                printf(" X");
+            } else if (board[i][j] == 0) {
+                printf(" .");
+            } else {
+                printf(" L");
+            }
+        }
+        printf(" |\n");
+    }
+    printf("\\-----------------/\n");
+}
+
+/*---------------------------------------------------------*/
+/*                    CREATE GAME                          */
+/*---------------------------------------------------------*/
 
 
 int** initialize_game() {
@@ -238,28 +302,6 @@ pos* possible_moves(int** current_board, int player) {
 
 }
 
-void print_positions(pos* position) {
-    
-    int index = 0;
-
-    if (position[index].x == -1) {
-        printf("[]");
-        return;
-    }
-
-    printf("[");
-    printf("(%d, %d)", position[index].x, position[index].y);
-    index++;
-    while (position[index].x != -1) {
-        printf(", (%d, %d)", position[index].x, position[index].y);
-        index++;
-    }
-    printf("]\n");
-
-}
-
-
-
 void place_stone(int** board, pos p, int colour){
     
     board[p.y][p.x] = colour;
@@ -325,91 +367,37 @@ void place_stone(int** board, pos p, int colour){
     }
 }
 
-void printBoard(int** board){
-    printf("/-----------------\\");
-    printf("\n");
-    for(int i = 0; i < 8; i++){
-        printf("|");
-        for(int j = 0; j < 8; j++){
-            if ( board[i][j] == 1 ){
-                printf(" O");
-            } else if ( board[i][j] == -1 ) {
-                printf(" X");
-            } else if (board[i][j] == 0) {
-                printf(" .");
-            } else {
-                printf(" L");
-            }
-        }
-        printf(" |\n");
-    }
-    printf("\\-----------------/\n");
-}
-
-
 float pruning_deep(int** board, int player, agent a) {
 
     int W_size = 64;
 
     float** tab = (float**)malloc(sizeof(float*)*W_size);
-    
+
     for(int i = 0; i < W_size; i++){
         tab[i] = (float*)malloc(sizeof(float));
         tab[i][0] = player*board[i / 8][i % 8]; // multiply by player so that its the 1 stones that need to be maximised
     } 
 
-    
-
+    // Board matrix column
     matrix X = init_matrix(W_size, 1, tab);
-    //matrix X = {.arr = tab, .height = 64, .width = 1};
-    // print_matrix(X);
 
+    // First layer
     matrix temp1 = matrix_mult(a.W1, X);
-    // printf("%d, %d, %d, %d", temp1.height, temp1.width, a.b1.height, a.b1.width);
-    // print_matrix(temp1);
-    // print_matrix(a.b1);
-    // printf("Done first\n");
     matrix Z1 = matrix_add(temp1, a.b1);
     matrix_sigmoid_self(Z1);
-    
-    // printf("Done first\n");
-    matrix Z2 = matrix_add(matrix_mult(a.W2, Z1), a.b2); // 
+
+    // Second layer
+    matrix Z2 = matrix_add(matrix_mult(a.W2, Z1), a.b2);
     matrix_sigmoid_self(Z2);
 
-    // printf("Done first\n");
-    matrix temp3 = matrix_mult(a.W3, Z2); // z2 c'est une colonne on est d'accord?
-    // printf("Done second\n"); // oui c'était pas cette ligne là, c'était juste pour parler
-    // printf("%d, %d\n", a.b3.height, a.b3.width); // mdr comment ça ca c normal le dernier noeud est tout seul il y a un seul bias
-    // printf("%d, %d\n", temp3.height, temp3.width);  // wtf mais ca frero ligne * colonne cest de dim 1x1
-    // printf("%d, %d, %d, %d\n", temp3.height, temp3.width, a.b3.width, a.b3.height);
-    matrix Z3 = matrix_add(temp3, a.b3); // j'ai rien dis no comprendo c pas un bail de pointage en faisant le add et multiply en meme temps
+    // Thirs layer
+    matrix temp3 = matrix_mult(a.W3, Z2);
+    matrix Z3 = matrix_add(temp3, a.b3);
     matrix_sigmoid_self(Z3);
     
-    // printf("Done first\n");
     free(tab);
-
-    // printf("Sait jamais");
-    // printBoard(board);
-    // printf("Heurisitic value (%f)\n", Z3.arr[0][0]);
     return Z3.arr[0][0];
     
-}
-
-int pruning() {
-    
-}
-
-valuation val_option(float v) {
-    valuation r;
-    r.v = v;
-    return r;
-}
-
-valuation val_complet(float v, int x, int y) {
-    valuation r;
-    r.v = v;
-    r.p = po(x, y);
-    return r;
 }
 
 valuation alpha_beta(int** board, float alpha, float beta, int recursion_left, int player, int turn, agent a) {
@@ -494,8 +482,9 @@ valuation alpha_beta(int** board, float alpha, float beta, int recursion_left, i
 
 }
 
-
-/* ----------------- READING DATA ------------------ */
+/*---------------------------------------------------------*/
+/*             READING DATA + TOURNAMENT                   */
+/*---------------------------------------------------------*/
 
 agent create_agent() {
 
@@ -684,12 +673,14 @@ void do_tournament() {
                 continue;
             }
 
-            temp_result = evaluate_two_agents(agent_array[i], agent_array[j]);
+            temp_result = evaluate_two_agents(agent_array[i], agent_array[j]); // negative -> agent i won | positive -> agent j won
 
-            if (temp_result == 1) {
-                values_arr[i]++;
+            if (temp_result < 0 ) {
+                values_arr[i] += 100 - temp_result;
+                values_arr[j] += temp_result;
             } else {
-                values_arr[j]++;
+                values_arr[j] += 100 + temp_result;
+                values_arr[i] += -temp_result;
             }
 
         }
@@ -705,7 +696,7 @@ void do_tournament() {
 
 }
 
-int winner_of_board(int** board) {
+int winner_of_board(int** board) { // postive -> white won | negative -> black won
 
     int p1 = 0, p2 = 0;
 
@@ -723,12 +714,12 @@ int winner_of_board(int** board) {
         }
     }
 
-    return p1 >= p2;
+    return (p1 >= p2) ? p1 : -p2;
 
 }
 
-int evaluate_two_agents(agent agent1, agent agent2) {
-
+int evaluate_two_agents(agent agent1, agent agent2) { // positive -> agent2 won  | negative -> agent1 won
+    // agent 1 is black  |  agent 2 is white
     int** board = initialize_game();
     start_game(board);
 
@@ -766,20 +757,18 @@ int evaluate_two_agents(agent agent1, agent agent2) {
         stones_placed++;
 
     }
-    //printf("Final game state : \n");   
-    //printBoard(board);
-    //printf("Stones placed: %d\n",stones_placed);
-    bool result = winner_of_board(board);
 
-    if (result) {
-        //printf("RESULT:1\n");
-    } else {
-        //printf("RESULT:2\n");
-    }
+
+    int result = winner_of_board(board); // positive -> agent2 won  | negative -> agent1 won
 
     return result;
 
 }
+
+
+/*---------------------------------------------------------*/
+/*              PLAY WITH GAME FUNCTIONS                   */
+/*---------------------------------------------------------*/
 
 void play_game_2_players() {
 

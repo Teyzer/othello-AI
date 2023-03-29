@@ -5,6 +5,9 @@ from threading import Thread
 import concurrent.futures
 import itertools
 import random
+import os
+
+#--------------------CLASS-----------------------#
 
 class ThreadWithReturnValue(Thread):
     
@@ -20,9 +23,6 @@ class ThreadWithReturnValue(Thread):
     def join(self, *args):
         Thread.join(self, *args)
         return self._return
-
-
-
 
 class Agent :
     def __init__(self):
@@ -83,11 +83,28 @@ class Agent :
 
         return A3
 
+#---------------------FUNC-----------------------#
+def out_random_mutation(ag: Agent, standard_deviation = 0.3):
+    
+    result = Agent()
+    
+    result.W1 = ag.W1 + standard_deviation*np.random.randn(ag.W1.shape[0], ag.W1.shape[1])
+    result.W2 = ag.W2 + standard_deviation*np.random.randn(ag.W2.shape[0], ag.W2.shape[1])
+    result.W3 = ag.W3 + standard_deviation*np.random.randn(ag.W3.shape[0], ag.W3.shape[1])
 
+    result.b1 = ag.b1 + standard_deviation*np.random.randn(ag.b1.shape[0], ag.b1.shape[1])
+    result.b2 = ag.b2 + standard_deviation*np.random.randn(ag.b2.shape[0], ag.b2.shape[1])
+    result.b3 = ag.b3 + standard_deviation*np.random.randn(ag.b3.shape[0], ag.b3.shape[1])
+    
+    return result
+
+#-----------------------------------------------#
 # Utility functions
+#-----------------------------------------------#
+
 def sigmoid(X) :
     return 1/(1 + np.exp(-X))
-
+#-----------------------------------------------#
 def write(A : Agent, index : int) :
     with open("temp_agents/agent" + str(index) + ".txt", "w") as f :
         f.write("\n".join(map(str, A.W1.flatten())) + "\n" +\
@@ -96,9 +113,9 @@ def write(A : Agent, index : int) :
                  "\n".join(map(str, A.b1.flatten())) + "\n" +\
                  "\n".join(map(str, A.b2.flatten())) + "\n" +\
                  "\n".join(map(str, A.b3.flatten())))
-#----------------------------------------#
-
-#----------------------------------------------------------
+        
+#-----------------------------------------------#
+#-----------------------------------------------#
 def crossover(A1 : Agent, A2 : Agent) :
 
     p1 = A1.parameters()
@@ -113,7 +130,7 @@ def crossover(A1 : Agent, A2 : Agent) :
     return [nA1,nA2]
 
 
-#----------------------------------------------------------
+#-----------------------------------------------#
 def evaluate_against(model1: Agent, model2: Agent):
      
     first_text_input = "\n".join(map(str, model1.W1.flatten())) + "\n" +\
@@ -138,7 +155,7 @@ def evaluate_against(model1: Agent, model2: Agent):
 
     return int(result) == 1
     
-#----------------------------------------------------------
+#-----------------------------------------------#
 def evalue_fitness_multi_threading(nb_rounds: int, agents: List[Agent]):
 
     
@@ -197,7 +214,7 @@ def evalue_fitness_multi_threading(nb_rounds: int, agents: List[Agent]):
 
     return scores
 
-#----------------------------------------------------------
+#-----------------------------------------------#
 def evalue_fitness(nb_rounds: int, gen: List[Agent]):
 
     for i in range(len(gen)) :
@@ -211,7 +228,7 @@ def evalue_fitness(nb_rounds: int, gen: List[Agent]):
 
     return result
     
-#----------------------------------------------------------
+#-----------------------------------------------#
 def evolve_generation(gen : list[Agent], scores : List[int]) :
 
     gen_couple = [(gen[i], scores[i]) for i in range(len(scores))]
@@ -244,8 +261,8 @@ def evolve_generation(gen : list[Agent], scores : List[int]) :
     # 12 crossover
     for sub in itertools.combinations([0,1,2,3], 2):
         new_gen.extend(crossover(gen_couple[sub[0]][0], gen_couple[sub[1]][0]))
-        new_gen[-1].rand_mutations(0.01)
-        new_gen[-2].rand_mutations(0.01)
+        new_gen[-1] = out_random_mutation(new_gen[-1], 0.01)
+        new_gen[-2] = out_random_mutation(new_gen[-2], 0.01)
 
     # 12 mutation
     for j in range(4) :
@@ -253,13 +270,13 @@ def evolve_generation(gen : list[Agent], scores : List[int]) :
         new_gen.append(gen_couple[j][0])
         new_gen.append(gen_couple[j][0])
         
-        new_gen[-1].rand_mutations(0.5)
-        new_gen[-2].rand_mutations(0.1)
-        new_gen[-3].rand_mutations(0.05)
+        new_gen[-1] = out_random_mutation(new_gen[-1], 0.5)
+        new_gen[-2] = out_random_mutation(new_gen[-2], 0.1)
+        new_gen[-3] = out_random_mutation(new_gen[-3], 0.05)
 
     return new_gen
 
-#----------------------------------------------------------
+#-----------------------------------------------#
 def first_generation(nb_agents) :
     n = [Agent() for _ in range(nb_agents)]
     for a in n :
@@ -267,7 +284,7 @@ def first_generation(nb_agents) :
         a.rand_mutations(random.randint(-3,3))
     return n
 
-#----------------------------------------------------------
+#-----------------------------------------------#
 def get_best(gen: List[Agent]) -> Agent:
 
     scores = evalue_fitness(1, gen)
@@ -277,7 +294,7 @@ def get_best(gen: List[Agent]) -> Agent:
     print("Best score:", gen_couple[0][1])
     return gen_couple[0][0]
 
-#----------------------------------------------------------
+#-----------------------------------------------#
 def model(nb_gen: int, nb_agents: int) :
     generation  = first_generation(nb_agents)
     for r in range(nb_gen) :
@@ -285,6 +302,8 @@ def model(nb_gen: int, nb_agents: int) :
         score = evalue_fitness(1, generation)
         print("Tableau des scores:", score)
         generation = evolve_generation(generation, score)
+        if r % 10 == 0:
+            eval_performance()
     return get_best(generation)
 
 
@@ -312,18 +331,35 @@ def read() :
 def model_continue(nb_gen: int, nb_agents: int) :
     generation = read()
     for r in range(nb_gen) :
-        print("Playing round : ", r)
+        print("Playing round:", r+1, "/", nb_gen)
         score = evalue_fitness(1, generation)
         print("Tableau des scores : ", score)
         generation = evolve_generation(generation, score)
+        if r % 10 == 0:
+            eval_performance()
     return get_best(generation)
 
 #-----------------------------------------------#
 
+def eval_performance():
+    nb_agents = len(list(os.listdir("sample_agents")))
+    wins = 0
+    for i in range(nb_agents):
+        z = subprocess.run(["./main", "best_agent.txt", "sample_agents/agent{0}.txt".format(i)], capture_output=True)
+        u = z.stdout.decode()
+        if int(u[u.index("RESULT:") + len("RESULT:")]) == 1:
+            wins += 1
+    print("#-- Score: {0}/{1}".format(wins, nb_agents))
+    with open("result.txt", "a") as f:
+        f.write(str(float(wins)/float(nb_agents)) + ",")
+    
+    
+    
+#-----------------------------------------------#
 if __name__ == "__main__":
 
     subprocess.run("gcc -o main main.c othello.c matrix.c -g -lm".split(), capture_output=True) # pour compiler une fois avant
-    A = model(2000, 32)
+    A = model_continue(2000, 32)
 
 
 

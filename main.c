@@ -4,48 +4,29 @@
 #include "othello.h"
 
 
-int main() {
+int main(int argc, char *argv[]) {
     
-    // int** board = initialize_game();
-    // start_game(board);
+    if (argc > 1) {
+        
+        FILE* f1 = fopen(argv[1], "r");
+        FILE* f2 = fopen(argv[2], "r");
+        
 
-    // matrix f = null_matrix(1, 64);
-    // matrix g = null_matrix(64, 1);
+        
+        agent a1 = create_agent_from_file(f1);
+        agent a2 = create_agent_from_file(f2);
 
-    // matrix h = matrix_mult(f, g);
-    // h = matrix_add(h, h);
+        int ev = evaluate_two_agents(a1, a2);
+        if (ev < 0) {
+            printf("RESULT:%d\n", 1);
+        } else {
+            printf("RESULT:%d\n", 2);
+        }
 
-    // print_matrix(h);
+    } else {
+        do_tournament();
+    }
 
-    //play_game_2_players();
-
-    
-
-    // FILE* f = fopen("sample.txt", "r");
-
-    // // agent* generation = create_gen_from_file(f);
-    // agent a1 = create_agent();
-    // agent a2 = create_agent();
-
-    //Sagent* a = create_gen_from_folder();
-
-    
-    // printf("WTF PRINT PLEASE\n");
-
-
-    //evaluate_two_agents(a[0], a[1]);
-    do_tournament();
-
-    // matrix m = identity_matrix(10);
-    // print_matrix(m);
-
-    // agent a = create_agent();
-
-    // int** b = initialize_game();
-    // start_game(b);
-    // place_stone(b, po(2, 3), -1);
-    // place_stone(b, po(1, 3), 1);
-    // printBoard(b);
 
     return 0;
 }
