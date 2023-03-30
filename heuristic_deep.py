@@ -359,7 +359,7 @@ def eval_performance():
 if __name__ == "__main__":
 
     subprocess.run("gcc -o main main.c othello.c matrix.c -g -lm".split(), capture_output=True) # pour compiler une fois avant
-    A = model_continue(2000, 32)
+    A = model_continue(3000, 32)
 
 
 
