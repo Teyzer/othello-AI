@@ -367,36 +367,134 @@ void place_stone(int** board, pos p, int colour){
     }
 }
 
+int count_stones(int** board) {
+    int c = 0;
+    for (int i = 0; i < BOARD_HEIGHT; i++) {
+        for (int j = 0; j < BOARD_HEIGHT; j++) {
+            if (board[i][j] != 0) {
+                c++;
+            }
+        }
+    }
+    return c;
+}
+
 float pruning_deep(int** board, int player, agent a) {
 
-    int W_size = 64;
+    // Nb of stone
+    int stones = count_stones(board);
 
-    float** tab = (float**)malloc(sizeof(float*)*W_size);
+    // What part of the game
+    int game_state;
+    if (stones < 20) {
+        game_state = 0; 
+    } else if (stones < 45) {
+        game_state = 1;
+    } else {
+        game_state = 2;
+    }
 
-    for(int i = 0; i < W_size; i++){
-        tab[i] = (float*)malloc(sizeof(float));
-        tab[i][0] = player*board[i / 8][i % 8]; // multiply by player so that its the 1 stones that need to be maximised
-    } 
+    int score = 0;
 
-    // Board matrix column
-    matrix X = init_matrix(W_size, 1, tab);
-
-    // First layer
-    matrix temp1 = matrix_mult(a.W1, X);
-    matrix Z1 = matrix_add(temp1, a.b1);
-    matrix_sigmoid_self(Z1);
-
-    // Second layer
-    matrix Z2 = matrix_add(matrix_mult(a.W2, Z1), a.b2);
-    matrix_sigmoid_self(Z2);
-
-    // Thirs layer
-    matrix temp3 = matrix_mult(a.W3, Z2);
-    matrix Z3 = matrix_add(temp3, a.b3);
-    matrix_sigmoid_self(Z3);
+    int board_multiplier = 1000;
+    int mobility_multiplier;
+    if (game_state == 0) {
+        mobility_multiplier = 50;
+    } else if (game_state == 1) {
+        mobility_multiplier = 20;
+    } else {
+        mobility_multiplier = 100;
+    }
     
-    free(tab);
-    return Z3.arr[0][0];
+    int stone_diff_multiplier;
+    if (game_state == 0) {
+        stone_diff_multiplier = 0;
+    } else if (game_state == 1) {
+        stone_diff_multiplier = 10;
+    } else if (game_state == 2) {
+        stone_diff_multiplier = 500;
+    }
+    
+
+    int position_on_board[][8] = {
+        {200 , -100, 100,  50,  50, 100, -100,  200},
+        {-100, -200, -50, -50, -50, -50, -200, -100},
+        {100 ,  -50, 100,   0,   0, 100,  -50,  100},
+        {50  ,  -50,   0,   0,   0,   0,  -50,   50},
+        {50  ,  -50,   0,   0,   0,   0,  -50,   50},
+        {100 ,  -50, 100,   0,   0, 100,  -50,  100},
+        {-100, -200, -50, -50, -50, -50, -200, -100},
+        {200 , -100, 100,  50,  50, 100, -100,  200}
+    };
+
+    for (int i = 0; i < BOARD_HEIGHT; i++) {
+        for (int j = 0; j < BOARD_HEIGHT; j++) {
+
+            if (board[i][j] == 0) {
+                continue;
+            } else if (board[i][j] == player) {
+                score += board_multiplier * position_on_board[i][j];
+            } else {
+                score -= board_multiplier * position_on_board[i][j];
+            }
+
+        }
+    }
+
+    // Number of possible moves
+    pos* pmove_player = possible_moves(board, player);
+    pos* pmove_adversary = possible_moves(board, -player);
+    
+    int nb_move_score = 0;
+    int i; int j;
+    for (i = 0; pmove_player[i].x != -1; i++){}
+    for (j = 0; pmove_adversary[j].x != -1; j++){}
+    nb_move_score = (i - j);
+
+    score += mobility_multiplier  * nb_move_score;
+    
+    // Difference of nb of stones
+    int stone_diff_score = 0;
+    for(int k = 0; k < 64; k++) {
+        if(board[k/8][k%8] == player){
+            stone_diff_score++;
+        }else if(board[k/8][k%8] == -player){
+            stone_diff_score--;
+        }
+    }
+    score += stone_diff_multiplier * stone_diff_score;
+    
+    return score;
+    
+
+    // int W_size = 64;
+
+    // float** tab = (float**)malloc(sizeof(float*)*W_size);
+
+    // for(int i = 0; i < W_size; i++){
+    //     tab[i] = (float*)malloc(sizeof(float));
+    //     tab[i][0] = player*board[i / 8][i % 8]; // multiply by player so that its the 1 stones that need to be maximised
+    // } 
+
+    // // Board matrix column
+    // matrix X = init_matrix(W_size, 1, tab);
+
+    // // First layer
+    // matrix temp1 = matrix_mult(a.W1, X);
+    // matrix Z1 = matrix_add(temp1, a.b1);
+    // matrix_sigmoid_self(Z1);
+
+    // // Second layer
+    // matrix Z2 = matrix_add(matrix_mult(a.W2, Z1), a.b2);
+    // matrix_sigmoid_self(Z2);
+
+    // // Thirs layer
+    // matrix temp3 = matrix_mult(a.W3, Z2);
+    // matrix Z3 = matrix_add(temp3, a.b3);
+    // matrix_sigmoid_self(Z3);
+    
+    // free(tab);
+    // return Z3.arr[0][0];
     
 }
 
